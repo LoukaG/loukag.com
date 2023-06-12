@@ -1,0 +1,91 @@
+body{
+    background: #00f url('../images/microfab.gif') top left;
+    font-family: "Comic Sans MS", "Comic Sans", cursive;
+}
+
+#video-background{
+    display: none;
+}
+
+h1{
+    background: -webkit-linear-gradient(rgb(255, 0, 0), rgb(255, 81, 0),rgb(225, 255, 0),rgb(140, 255, 0));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+header{
+    background: url('../images/yahooweek.gif') no-repeat;
+    background-position: 75% 100%;
+}
+
+p{
+    color: yellow;
+}
+
+li{
+    background-color: chartreuse;
+}
+
+.button{
+    display: inline-block;
+    *display: inline;
+    padding: 4px 12px;
+    margin-bottom: 0;
+    *margin-left: .3em;
+    font-size: 16px;
+    line-height: 20px;
+    color: #333;
+    text-align: center;
+    text-shadow: 0 1px 1px rgba(255,255,255,0.75);
+    vertical-align: middle;
+    cursor: pointer;
+    background-color: #e6e6e6;
+    *background-color: #e6e6e6;
+    background-image: -moz-linear-gradient(top,#e6e6e6,#e6e6e6);
+    background-image: -webkit-gradient(linear,0 0,0 100%,from(#e6e6e6),to(#e6e6e6));
+    background-image: -webkit-linear-gradient(top,#e6e6e6,#e6e6e6);
+    background-image: -o-linear-gradient(top,#e6e6e6,#e6e6e6);
+    background-image: linear-gradient(to bottom,#e6e6e6,#e6e6e6);
+    background-repeat: repeat-x;
+    border: 1px solid #bbb;
+    *border: 0;
+    border-color: #e6e6e6 #e6e6e6 #bfbfbf;
+    border-color: rgba(0,0,0,0.1) rgba(0,0,0,0.1) rgba(0,0,0,0.25);
+    border-bottom-color: #a2a2a2;
+    -webkit-border-radius: none;
+    -moz-border-radius: none;
+    border-radius: none;
+    filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#ffe6e6e6',endColorstr='#ffe6e6e6',GradientType=0);
+    filter: progid:DXImageTransform.Microsoft.gradient(enabled=false);
+    *zoom: 1;
+    -webkit-box-shadow: inset 0 1px 0 rgba(255,255,255,0.2),0 1px 2px rgba(0,0,0,0.05);
+    -moz-box-shadow: inset 0 1px 0 rgba(255,255,255,0.2),0 1px 2px rgba(0,0,0,0.05);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.2),0 1px 2px rgba(0,0,0,0.05);
+}
+
+.icon{
+    display: none;
+}
+
+#github{
+    background: url('../images/notepad-typing.gif') repeat;
+    background-size: 50%;
+    color:dodgerblue;
+}
+
+#twitter{
+    background: url('../images/Myspace.png') repeat;
+    background-size: 25%;
+    color: rgb(140, 255, 0);
+}
+
+#discord{
+    background: url('../images/skype.gif') repeat;
+    background-size: 25% auto;
+    color: greenyellow;
+}
+
+#email{
+    background: url('../images/emailme.gif') repeat;
+    color: red;
+}
