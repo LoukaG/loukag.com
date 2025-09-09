@@ -1,0 +1,28 @@
+#navbar {
+    position: fixed;
+    width: 100vw;
+    padding-top: 1vh;
+    padding-bottom: 1vh;
+    background-color: var(--background);
+    z-index: 50;
+}
+
+nav {
+    display: flex;
+    justify-content: space-between;
+    font-size: 1.3em;
+    z-index: 50;
+}
+
+nav a {
+    color: var(--text);
+    text-decoration: none;
+    z-index: 50;
+}
+
+@media all and (orientation: portrait) {
+    nav a {
+        font-size: 0.8em;
+        text-align: center;
+    }
+}
