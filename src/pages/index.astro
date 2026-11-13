@@ -1,0 +1,20 @@
+---
+import PaintScene from '../scenes/PaintScene';
+import '../styles/global.css';
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#dce9f6" />
+    <meta name="description" content="Hello :-) I'm Louka Gauthier, full stack developer. A little introduction, drawn in Paint. Scroll to erase and start again." />
+    <link rel="icon" type="image/x-icon" href="/assets/paint.ico" />
+    <link rel="preload" as="image" href="/assets/louka-paint-portrait.jpg" />
+    <title>Louka Gauthier — Paint</title>
+  </head>
+  <body>
+    <main><PaintScene client:load /></main>
+    <noscript><div class="no-script">Hello :-) I'm Louka Gauthier, full stack developper. Enable JavaScript to explore my Paint canvas.</div></noscript>
+  </body>
+</html>

@@ -1,54 +1,49 @@
-# LoukaG.com
+# Louka Gauthier — Paint
 
-Bienvenue sur mon site personnel LoukaG.com.
+A portfolio introduction inside a full-screen Paint window. The canvas starts with “Hello :-) I'm Louka Gauthier, full stack developper” and Louka's supplied Paint-style portrait. Scrolling guides a square eraser across the introduction; scrolling back restores it exactly.
 
-Je suis Louka Gauthier, passionné par le développement web et les expériences numériques modernes.
-Ce site a été créé pour me présenter, partager mes projets, et offrir une vitrine interactive de mes compétences.
+## Run
 
-[Visiter LoukaG.com](http://loukag.com/)
+Requires Node >= 22.23.4 (`.nvmrc` selects Node 26).
 
-## Table des Matières
+```sh
+nvm use
+npm ci
+npm run dev
+```
 
-- [Technologies Utilisées](#technologies-utilisées)
-- [Fonctionnalités](#fonctionnalités)
-- [Installation](#installation)
-- [Capture d'Écran](#capture-décran)
-- [Licence](#licence)
+Local preview: `http://127.0.0.1:4321`. `npm run build` emits the static site to `dist/`.
 
-## Technologies Utilisées
+```sh
+npm run check
+npm test
+npm run build
+```
 
-- [Angular](https://angular.io/)
-- [GSAP](https://greensock.com/gsap/)
-- [SkeletonCSS](https://getskeleton.com/)
-- [Lenis](https://github.com/studio-freight/lenis)
+Tests use installed Google Chrome and cover the initial composition, drawing, undo/redo, clear, PNG export, actual pixel erasure, cursor alignment, exact scroll reversal, replay, responsive layout, and reduced motion.
 
-## Fonctionnalités
+## Behavior
 
-- Portfolio
-- Présentation
-- Mes Forces
+- Paint opens immediately and fills the viewport. The application stays pinned while the page scrolls.
+- The introduction is drawn into the actual bitmap. A square eraser follows a continuous serpentine path, shared with the white strokes that remove the artwork.
+- Scroll up or choose **Replay introduction** to restore the introduction. Replay preserves the visitor's own drawing layer.
+- Draw with mouse or pen, select a color and brush size, use shapes, undo/redo, clear, or export a PNG. User drawings remain editable after the introduction has been erased.
+- Ctrl/Cmd+Z undoes, Ctrl/Cmd+Y or Ctrl/Cmd+Shift+Z redoes, and Ctrl/Cmd+S saves.
+- View includes zoom and gridlines. At 100%, the canvas fits the available space. Larger zoom levels allow panning inside the canvas workspace.
+- Narrow screens stack the introduction and portrait. Touch gestures scroll the story; drawing uses a mouse or pen. The ribbon scrolls horizontally.
+- Reduced motion replaces the moving eraser with a single clear/restore transition at the midpoint.
+- Help opens an accessible modal. The canvas's accessible name and page heading preserve the introduction for screen readers.
 
-## Installation
+Clipboard, text editing, selection, crop, resize, and rotation remain disabled. Fill colors the entire canvas. Drawing history is in memory and resets on reload.
 
-1. **Cloner le Projet**
+## Implementation
 
-   ```bash
-   git clone https://github.com/LoukaG/loukag.com.git
-   ```
-2. **Accéder au Répertoire du Projet**
-   ```bash
-   cd loukag.com
-   ```
-3. **Assurez-vous que Angular est bien installé et démarrez le serveur**
-   ```bash
-   ng serve
-   ```
-   *L'application sera accessible à l'adresse http://localhost:4200/ par défaut.*
+- `src/scenes/PaintScene.tsx`: pinned scene, scroll progress, replay, and motion preferences.
+- `src/components/paint/PaintWindow.tsx`: ribbon, keyboard commands, help, and status.
+- `src/components/paint/PaintCanvas.tsx`: responsive canvas, cached artwork, drawing history, and PNG export.
+- `src/components/paint/intro-artwork.ts`: introduction layout and shared eraser path.
+- `src/pages/index.astro`: document metadata and hydrated React island.
 
+The former desktop launch sequence has been removed. Unused desktop components and archived assets remain available for reuse but are not rendered. No wallpaper, taskbar, desktop shortcuts, Three.js, or animation libraries are loaded by this scene.
 
-## Licence
-Ce projet est sous licence MIT.
-
-Vous êtes libre de l’utiliser, le modifier et le distribuer, à condition de conserver la mention suivante : **Copyright © 2025 Louka Gauthier**
-
-Consultez le fichier [LICENSE](LICENSE) pour plus de détails.
+All artwork is local. Handwritten text uses Comic Sans MS, Chalkboard SE, Segoe Print, or the system cursive fallback. See [ASSET-CREDITS.md](ASSET-CREDITS.md).
