@@ -2,7 +2,9 @@ import { useEffect, useRef, useState } from "react";
 import { Icon } from "../desktop/Icon";
 import { PaintRibbon } from "./PaintRibbon";
 import { PaintCanvas } from "./PaintCanvas";
+import { Clippy } from "./Clippy";
 import { ProjectPicker } from "./ProjectPicker";
+import type { BuildTool } from "./paint-build";
 import { type Project } from "./project-artwork";
 import { ToolGlyph } from "./ToolGlyph";
 import type { CanvasHandle, PaintTool, Point } from "./types";
@@ -12,8 +14,9 @@ interface Props {
   onReplay: () => void;
   onTimeline: () => void;
   onProjects: () => void;
+  onContact: () => void;
 }
-export function PaintWindow({ progress, reducedMotion, onReplay, onTimeline, onProjects }: Props) {
+export function PaintWindow({ progress, reducedMotion, onReplay, onTimeline, onProjects, onContact }: Props) {
   const [tool, setTool] = useState<PaintTool>("brush"),
     [color, setColor] = useState("#000000"),
     [size, setSize] = useState(3),
@@ -22,13 +25,15 @@ export function PaintWindow({ progress, reducedMotion, onReplay, onTimeline, onP
   const [project, setProject] = useState<Project | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [pickerDismissed, setPickerDismissed] = useState(false);
-  const currentProject = progress >= 3.35 ? project : null;
+  const currentProject = progress >= 3.35 && progress < 4.45 ? project : null;
+  const contactSection = progress >= 4.45;
+  useEffect(() => { setColor(contactSection ? "#fff" : "#000"); }, [contactSection]);
   useEffect(() => {
     if (progress < 3.35) { setPickerDismissed(false); return; }
-    if (progress >= 3.5 && !project && !pickerDismissed) setPickerOpen(true);
+    if (progress >= 3.5 && progress < 4 && !project && !pickerDismissed) setPickerOpen(true);
   }, [progress, project, pickerDismissed]);
   const [recentOpen, setRecentOpen] = useState(false);
-  const [animationTool, setAnimationTool] = useState<"text" | "pencil" | null>(null);
+  const [animationTool, setAnimationTool] = useState<BuildTool | null>(null);
   const [tab, setTab] = useState<"home" | "view">("home"),
     [fileOpen, setFileOpen] = useState(false),
     [helpOpen, setHelpOpen] = useState(false),
@@ -79,13 +84,14 @@ export function PaintWindow({ progress, reducedMotion, onReplay, onTimeline, onP
       <header className="title-bar paint-titlebar">
         <Icon name="paint" size={17} />
         <div className="quick-access">
-          <button
-            title="Save (Ctrl+S)"
-            aria-label="Save image"
-            onClick={() => canvas.current?.save()}
+          <a
+            href="/cv.pdf"
+            download="Louka-Gauthier-CV.pdf"
+            title="Download CV (PDF)"
+            aria-label="Download CV (PDF)"
           >
             <ToolGlyph name="save" size={15} />
-          </button>
+          </a>
           <button
             title="Undo (Ctrl+Z)"
             aria-label="Undo"
@@ -104,9 +110,8 @@ export function PaintWindow({ progress, reducedMotion, onReplay, onTimeline, onP
           </button>
           <span>▾</span>
         </div>
-        <span className="paint-title">{currentProject ? `${currentProject.file} - Paint` : "Louka Gauthier - Paint"}</span>
+        <span className="paint-title">{contactSection ? "Contact - Paint" : currentProject ? `${currentProject.file} - Paint` : "Louka Gauthier - Paint"}</span>
         {progress >= 3.3 && <button className="replay-intro" onClick={() => setPickerOpen(true)}>Projects…</button>}
-        <button className="replay-intro" onClick={onReplay} title="Restore the introduction">↶ Replay introduction</button>
       </header>
       <div className="paint-inner">
         <nav className="paint-tabs" aria-label="Paint ribbon">
@@ -122,45 +127,51 @@ export function PaintWindow({ progress, reducedMotion, onReplay, onTimeline, onP
             </button>
             {fileOpen && (
               <div className="file-menu">
-                <button
-                  onClick={() => {
-                    canvas.current?.clear();
-                    setFileOpen(false);
-                  }}
-                >
+                <button onClick={() => window.location.reload()}>
                   <span className="blank-page" />
                   <span>
-                    New<small>Start a blank canvas</small>
+                    New<small>Reload the page</small>
                   </span>
                 </button>
                 <button onClick={() => { setPickerOpen(true); setFileOpen(false); }}>
                   <Icon name="folder" size={25} /><span>Open<small>Choose a project image</small></span>
                 </button>
-                <a href="/cv.pdf" download="Louka-Gauthier-CV.pdf" onClick={() => setFileOpen(false)}>
-                  <ToolGlyph name="save" size={25} />
-                  <span>Save as<small>CV · PDF document</small></span>
-                </a>
-                <hr />
                 <div className="recent-files"
                   onMouseEnter={() => setRecentOpen(true)}
                   onMouseLeave={() => setRecentOpen(false)}
                   onFocusCapture={() => setRecentOpen(true)}
                   onBlurCapture={event => { if (!event.currentTarget.contains(event.relatedTarget)) setRecentOpen(false); }}>
-                  <button aria-expanded={recentOpen} aria-controls="recently-opened-list" onClick={() => setRecentOpen(true)}>
+                  <button aria-expanded={recentOpen} aria-controls="recent-images-list" onClick={() => setRecentOpen(true)}>
                     <Icon name="folder" size={25} />
-                    <span>Recently opened</span><span className="submenu-arrow" aria-hidden="true">▸</span>
+                    <span>Recent images</span><span className="submenu-arrow" aria-hidden="true">▸</span>
                   </button>
                   {recentOpen && (
-                    <div id="recently-opened-list" className="recent-submenu" role="group" aria-label="Recently opened shortcuts">
+                    <div id="recent-images-list" className="recent-submenu" role="group" aria-label="Recent images shortcuts">
                       <button onClick={() => { onReplay(); setFileOpen(false); setRecentOpen(false); }}>
                         <Icon name="paint" size={25} /><span>Introduction</span>
                       </button>
                       <button onClick={() => { onTimeline(); setFileOpen(false); setRecentOpen(false); }}>
                         <Icon name="document" size={25} /><span>Education &amp; Experience</span>
                       </button>
+                      <button onClick={() => { setPickerOpen(true); setFileOpen(false); setRecentOpen(false); }}>
+                        <Icon name="folder" size={25} /><span>Projects</span>
+                      </button>
+                      <button onClick={() => { onContact(); setFileOpen(false); setRecentOpen(false); }}>
+                        <Icon name="document" size={25} /><span>Contact</span>
+                      </button>
                     </div>
                   )}
                 </div>
+                <hr />
+                <a href="/cv.pdf" download="Louka-Gauthier-CV.pdf" onClick={() => setFileOpen(false)}>
+                  <ToolGlyph name="save" size={25} />
+                  <span>Save as<small>CV · PDF document</small></span>
+                </a>
+                <hr />
+                <a href="https://github.com/LoukaG/loukag.com" target="_blank" rel="noopener noreferrer" onClick={() => setFileOpen(false)}>
+                  <Icon name="paint" size={25} />
+                  <span>About Paint<small>View website source on GitHub</small></span>
+                </a>
               </div>
             )}
           </div>
@@ -190,7 +201,7 @@ export function PaintWindow({ progress, reducedMotion, onReplay, onTimeline, onP
         <PaintRibbon
           tab={tab}
           tool={erasing ? "eraser" : animationTool ?? tool}
-          color={color}
+          color={animationTool === "fill" ? "#000" : contactSection && animationTool ? "#fff" : color}
           size={size}
           zoom={zoom}
           grid={grid}
@@ -204,6 +215,7 @@ export function PaintWindow({ progress, reducedMotion, onReplay, onTimeline, onP
         <PaintCanvas
           ref={canvas}
           project={currentProject}
+          onChooseProject={() => setPickerOpen(true)}
           onAnimationTool={setAnimationTool}
           progress={progress}
           reducedMotion={reducedMotion}
@@ -230,7 +242,7 @@ export function PaintWindow({ progress, reducedMotion, onReplay, onTimeline, onP
             {dimensions.width} × {dimensions.height} px
           </span>
           <span className="status-fill" />
-          <span className="paint-scroll-hint" role="status">{currentProject ? "Choose Projects to open another image" : progress >= 3.5 ? "Choose Projects to explore my work" : progress >= 3.1 ? "Scroll up to revisit ↑ · projects below ↓" : progress > 1 ? "Education & experience · follow the timeline ↓" : erasing ? "Erasing… scroll back to restore ↑" : "Scroll to explore ↓"}</span>
+          <span className="paint-scroll-hint" role="status">{progress >= 6.25 ? "Thanks for visiting · scroll up to explore ↑" : contactSection ? "Contact · typing…" : progress >= 4 ? "Filling the canvas…" : currentProject ? "Scroll down to get in touch ↓" : progress >= 3.5 ? "Choose Projects to explore my work" : progress >= 3.1 ? "Scroll up to revisit ↑ · projects below ↓" : progress > 1 ? "Education & experience · follow the timeline ↓" : erasing ? "Erasing… scroll back to restore ↑" : "Scroll to explore ↓"}</span>
           <span>{zoom}%</span>
           <button
             aria-label="Zoom out"
@@ -256,13 +268,14 @@ export function PaintWindow({ progress, reducedMotion, onReplay, onTimeline, onP
           <span className="resize-grip">◢</span>
         </div>
       </div>
+      <Clippy progress={progress} blocked={pickerOpen || helpOpen || fileOpen} />
       {pickerOpen && <ProjectPicker onClose={() => { setPickerOpen(false); setPickerDismissed(true); }} onOpen={selected => {
         setProject(selected); setPickerOpen(false); setPickerDismissed(true); onProjects();
       }} />}
       <dialog ref={helpDialog} className="paint-help-dialog" onClose={() => { setHelpOpen(false); helpButton.current?.focus({ preventScroll: true }); }}>
         <h2>A little introduction in Paint.</h2>
-        <p>Scroll down to erase the introduction and follow my education, internships and professional work on a timeline. Scroll back up or choose Replay introduction to start again.</p>
-        <p>Draw with a mouse or pen, choose a color, and save your canvas as a PNG. On a phone, swipe to scroll.</p>
+        <p>Scroll down to erase the introduction and follow my education, internships and professional work on a timeline. Scroll back up or choose File → Recent images → Introduction to start again.</p>
+        <p>Draw with a mouse or pen, choose a color, and press Ctrl/Cmd + S to save your canvas as a PNG. On a phone, swipe to scroll.</p>
         <p>Ctrl/Cmd + Z to undo · Ctrl/Cmd + S to save.</p>
         <button autoFocus onClick={() => setHelpOpen(false)}>Back to Paint</button>
       </dialog>

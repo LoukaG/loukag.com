@@ -894,7 +894,7 @@ button:focus:not(:focus-visible) {
   box-shadow: 0 0 1px #385c76;
   margin-right: 7px;
 }
-.quick-access button {
+.quick-access button, .quick-access a {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -904,7 +904,7 @@ button:focus:not(:focus-visible) {
   border: 1px solid transparent;
   border-radius: 2px;
 }
-.quick-access button:not(:disabled):hover {
+.quick-access button:not(:disabled):hover, .quick-access a:hover {
   background: #fff1c1;
   border-color: #c99d4b;
 }
@@ -1849,7 +1849,7 @@ button:focus:not(:focus-visible) {
   .quick-access {
     margin-right: 0;
   }
-  .quick-access button {
+  .quick-access button, .quick-access a {
     width: 18px;
   }
   .quick-access span {
@@ -1946,7 +1946,7 @@ button:focus:not(:focus-visible) {
 
 /* A single maximized Paint window stays pinned throughout the erasing scene. */
 :root { background: #dce9f6; }
-.paint-story { position: relative; height: calc(100svh + 320svh / 3 * 3.8); }
+.paint-story { position: relative; height: calc(100svh + 320svh / 3 * 6.5); }
 .paint-viewport {
   position: sticky;
   top: 0;
@@ -2101,4 +2101,76 @@ button:focus:not(:focus-visible) {
   .picker-footer { padding: 10px; }
   .picker-toolbar span { display: none; }
   .project-link { left: 7%; bottom: 5%; font-size: 15px; }
+}
+
+.project-switch { bottom: 3%; border: 0; background: none; padding: 0; cursor: pointer; }
+@media (max-width: 600px) {
+  .project-switch { bottom: 1%; }
+}
+
+.build-bucket { display: none; position: absolute; left: -6px; top: -27px; transform: rotate(-22deg); filter: drop-shadow(1px 2px 1px #fff8); }
+.paint-build-cursor[data-tool="fill"] .build-bucket { display: block; }
+.paint-build-cursor[data-tool="fill"] .build-pencil { display: none; }
+.build-bucket path:nth-child(2), .build-bucket path:nth-child(3) { fill: #000; }
+.contact-canvas .build-text-caret { border-color: #fff; }
+.contact-canvas .build-text-caret::after { border-color: #fff; }
+.contact-canvas .paint-text-box { border-color: #d9e5ff; }
+.contact-canvas .paint-text-box i { background: #000; border-color: #d9e5ff; }
+.contact-hotspot { position: absolute; color: #fff; border-radius: 2px; }
+.contact-hotspot:hover { outline: 1px dashed #9bb2ff; outline-offset: 3px; }
+.contact-hotspot:focus-visible { outline: 2px solid #9bb2ff; outline-offset: 3px; }
+
+html:has(.project-picker[open]) { overflow: hidden; }
+.project-picker { overscroll-behavior: contain; }
+
+
+.clippy {
+  position: fixed;
+  right: 24px;
+  bottom: 44px;
+  z-index: 8;
+  width: min(290px, calc(100vw - 32px));
+  pointer-events: none;
+}
+.clippy-bubble {
+  position: relative;
+  padding: 18px 32px 18px 18px;
+  border: 1px solid #383321;
+  border-radius: 8px;
+  background: #ffffce;
+  color: #242116;
+  box-shadow: 2px 3px 0 #0003;
+  font: 14px/1.5 Tahoma, sans-serif;
+  pointer-events: auto;
+}
+.clippy-bubble::after {
+  content: "";
+  position: absolute;
+  right: 48px;
+  bottom: -9px;
+  width: 16px;
+  height: 16px;
+  border-right: 1px solid #383321;
+  border-bottom: 1px solid #383321;
+  background: #ffffce;
+  transform: skewY(25deg) rotate(45deg);
+}
+.clippy-bubble p { margin: 0; }
+.clippy-close {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  background: transparent;
+  color: #5a5132;
+  font-size: 20px;
+  cursor: pointer;
+}
+.clippy-close:hover { color: #000; background: #e9e4ac; border-radius: 4px; }
+.clippy-character { display: block; width: 110px; height: 133px; margin: 10px 10px 0 auto; }
+@media (max-width: 600px) {
+  .clippy { right: 16px; bottom: 38px; }
+  .clippy-character { width: 85px; height: 103px; }
 }

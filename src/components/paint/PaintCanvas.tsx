@@ -8,6 +8,8 @@ import {
 } from "react";
 import type { PaintTool, Point, Stroke, CanvasHandle } from "./types";
 import { drawIntroduction, eraseIntroduction, INTRO_TEXT } from "./intro-artwork";
+import { drawBucketFill, drawContact, contactLayout } from "./contact-artwork";
+import type { BuildTool } from "./paint-build";
 import { drawResume, resume } from "./resume-artwork";
 import { drawProject, projects, type Project } from "./project-artwork";
 import { ToolGlyph } from "./ToolGlyph";
@@ -98,16 +100,17 @@ export const PaintCanvas = forwardRef<
     zoom: number;
     grid: boolean;
     project: Project | null;
+    onChooseProject: () => void;
     progress: number;
     reducedMotion: boolean;
-    onAnimationTool: (tool: "text" | "pencil" | null) => void;
+    onAnimationTool: (tool: BuildTool | null) => void;
     onDimensions: (dimensions: { width: number; height: number }) => void;
     onPosition: (p: Point) => void;
     onHistory: (undo: boolean, redo: boolean) => void;
     onPick: (color: string) => void;
   }
 >(function PaintCanvas(
-  { tool, color, size, zoom, grid, project, progress, reducedMotion, onAnimationTool, onDimensions, onPosition, onHistory, onPick },
+  { tool, color, size, zoom, grid, project, onChooseProject, progress, reducedMotion, onAnimationTool, onDimensions, onPosition, onHistory, onPick },
   ref,
 ) {
   const workspace = useRef<HTMLDivElement>(null),
@@ -140,32 +143,36 @@ export const PaintCanvas = forwardRef<
     ctx.drawImage(backdrop.current, 0, 0);
     const progress = scene.current.progress;
     const project = scene.current.project;
-    const currentPage = project ? 2 + projects.findIndex(item => item.id === project.id) : progress > 1 ? 1 : 0;
-    if (project) drawProject(ctx, project);
-    const activity = currentPage === 1 ? drawResume(ctx, progress, scene.current.reducedMotion) : undefined;
-    const building = activity && !active.current;
-    onAnimationTool(building ? activity.tool : null);
+    const contact = progress >= 4.45;
+    const currentPage = contact ? 10 : project ? 2 + projects.findIndex(item => item.id === project.id) : progress > 1 ? 1 : 0;
+    let activity;
+    if (contact) activity = drawContact(ctx, progress, scene.current.reducedMotion);
+    else if (project) drawProject(ctx, project);
+    else if (currentPage === 1) activity = drawResume(ctx, Math.min(progress, 3.3), scene.current.reducedMotion);
+    history.current.filter(s => (s.page ?? 0) === currentPage).forEach(s => drawStroke(ctx, s));
+    if (active.current && (active.current.page ?? 0) === currentPage) drawStroke(ctx, active.current);
+    if (progress >= 4 && progress < 4.45) activity = drawBucketFill(ctx, progress, scene.current.reducedMotion);
+    const building = !active.current ? activity : undefined;
+    onAnimationTool(building?.tool ?? null);
     if (buildCursor.current) {
       buildCursor.current.hidden = !building;
       if (building) {
-        buildCursor.current.dataset.tool = activity.tool;
-        buildCursor.current.style.left = `${activity.point.x / WIDTH * 100}%`;
-        buildCursor.current.style.top = `${activity.point.y / HEIGHT * 100}%`;
+        buildCursor.current.dataset.tool = building.tool;
+        buildCursor.current.style.left = `${building.point.x / WIDTH * 100}%`;
+        buildCursor.current.style.top = `${building.point.y / HEIGHT * 100}%`;
       }
     }
     if (textBox.current) {
-      const box = building && activity.box;
+      const box = building?.box;
       textBox.current.hidden = !box;
       if (box) {
-        textBox.current.dataset.text = activity.text ?? "";
+        textBox.current.dataset.text = building?.text ?? "";
         textBox.current.style.left = `${box.x / WIDTH * 100}%`;
         textBox.current.style.top = `${box.y / HEIGHT * 100}%`;
         textBox.current.style.width = `${box.width * box.amount / WIDTH * 100}%`;
         textBox.current.style.height = `${box.height * box.amount / HEIGHT * 100}%`;
       }
     }
-    history.current.filter(s => (s.page ?? 0) === currentPage).forEach(s => drawStroke(ctx, s));
-    if (active.current && (active.current.page ?? 0) === currentPage) drawStroke(ctx, active.current);
     const eraseProgress = currentPage === 0 ? progress : 0;
     const eraser = eraseIntroduction(ctx, eraseProgress, scene.current.reducedMotion);
     if (cursor.current) {
@@ -226,7 +233,7 @@ export const PaintCanvas = forwardRef<
     },
     clear: () => {
       history.current.push({
-        page: scene.current.project ? 2 + projects.findIndex(item => item.id === scene.current.project!.id) : scene.current.progress > 1 ? 1 : 0,
+        page: scene.current.progress >= 4.45 ? 10 : scene.current.project ? 2 + projects.findIndex(item => item.id === scene.current.project!.id) : scene.current.progress > 1 ? 1 : 0,
         tool: "fill",
         color: "#fff",
         size: 1,
@@ -242,7 +249,7 @@ export const PaintCanvas = forwardRef<
         const url = URL.createObjectURL(blob),
           a = document.createElement("a");
         a.href = url;
-        a.download = scene.current.project?.file ?? "Louka-Gauthier-Paint.png";
+        a.download = scene.current.progress >= 4.45 ? "Louka-Gauthier-Contact.png" : scene.current.project?.file ?? "Louka-Gauthier-Paint.png";
         a.click();
         setTimeout(() => URL.revokeObjectURL(url), 1000);
       }, "image/png");
@@ -289,14 +296,14 @@ export const PaintCanvas = forwardRef<
         ))}
       </div>
       <div
-        className={`canvas-sheet ${grid ? "grid-visible" : ""}`}
+        className={`canvas-sheet ${grid ? "grid-visible" : ""} ${progress >= 4.45 ? "contact-canvas" : ""}`}
         style={{ width: (WIDTH * layout.scale * zoom) / 100, height: (HEIGHT * layout.scale * zoom) / 100 }}
       >
         <canvas
           ref={canvas}
           width={WIDTH}
           height={HEIGHT}
-          aria-label={project ? `${project.name}. ${project.description} ${project.details}` : `${INTRO_TEXT}. Paint-style portrait. Scroll down, or swipe up on mobile, to explore. Draw with your mouse or pen.`}
+          aria-label={progress >= 4.45 ? "Contact Louka Gauthier. Email, LinkedIn and GitHub." : project ? `${project.name}. ${project.description} ${project.details}` : `${INTRO_TEXT}. Paint-style portrait. Scroll down, or swipe up on mobile, to explore. Draw with your mouse or pen.`}
           style={{ cursor: tool === "picker" ? "copy" : "crosshair" }}
           onPointerDown={(e) => {
             if (e.pointerType === "touch" || e.button !== 0 || pointer.current !== null) return;
@@ -322,7 +329,7 @@ export const PaintCanvas = forwardRef<
             }
             e.currentTarget.setPointerCapture(e.pointerId);
             pointer.current = e.pointerId;
-            active.current = { tool, color, size, points: [p], page: scene.current.project ? 2 + projects.findIndex(item => item.id === scene.current.project!.id) : scene.current.progress > 1 ? 1 : 0 };
+            active.current = { tool, color, size, points: [p], page: scene.current.progress >= 4.45 ? 10 : scene.current.project ? 2 + projects.findIndex(item => item.id === scene.current.project!.id) : scene.current.progress > 1 ? 1 : 0 };
             repaint();
           }}
           onPointerMove={(e) => {
@@ -338,11 +345,20 @@ export const PaintCanvas = forwardRef<
           onPointerCancel={() => finish(true)}
           onLostPointerCapture={() => finish()}
         />
-        {project && <a className="project-link" href={project.url} target="_blank" rel="noopener noreferrer">{project.linkLabel} ↗<span className="sr-only">: {project.name} (opens in a new tab)</span></a>}
+        {project?.url && progress < 4 && <a className="project-link" href={project.url} target="_blank" rel="noopener noreferrer">{project.linkLabel} ↗<span className="sr-only">: {project.name} (opens in a new tab)</span></a>}
+        {project && progress < 4 && <button className="project-link project-switch" onClick={onChooseProject}>Choose another project…</button>}
+        {progress >= 4.45 && contactLayout(WIDTH, HEIGHT).links.map(link => (progress >= link.readyAt || reducedMotion) && (
+          <a key={link.label} className="contact-hotspot" href={link.href}
+            target={link.href.startsWith("https:") ? "_blank" : undefined} rel={link.href.startsWith("https:") ? "noopener noreferrer" : undefined}
+            style={{ left: `${link.x / WIDTH * 100}%`, top: `${link.y / HEIGHT * 100}%`, width: `${link.width / WIDTH * 100}%`, height: `${link.height / HEIGHT * 100}%` }}>
+            <span className="sr-only">{link.label}: {link.value}</span>
+          </a>
+        ))}
         <div ref={textBox} className="paint-text-box" aria-hidden="true" hidden>
           <i /><i /><i /><i /><i /><i /><i /><i />
         </div>
         <div ref={buildCursor} className="paint-build-cursor" aria-hidden="true" hidden>
+          <span className="build-bucket"><ToolGlyph name="fill" size={32} /></span>
           <span className="build-pencil"><ToolGlyph name="pencil" size={28} /></span>
           <span className="build-text-caret" />
         </div>

@@ -43,7 +43,7 @@ test('opens directly in Paint with portrait; drawing, undo, redo and export work
   await page.getByRole('button', { name: 'Redo', exact: true }).click();
   expect(await image(page)).toBe(after);
   const downloadPromise = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Save image', exact: true }).click();
+  await page.keyboard.press('ControlOrMeta+s');
   expect((await downloadPromise).suggestedFilename()).toBe('Louka-Gauthier-Paint.png');
   await page.getByRole('button', { name: 'Clear', exact: true }).click();
   expect(await ink(page)).toBe(0);
@@ -77,7 +77,7 @@ test('scroll over canvas erases pixels along the visible cursor and reverses exa
   expect(await center()).toEqual([255, 255, 255, 255]);
   await page.mouse.move(rect.x + rect.width / 2, rect.y + rect.height / 2);
   const scrollDistance = 900 * 3.2 / 3;
-  expect(await page.evaluate(() => document.documentElement.scrollHeight - window.innerHeight)).toBeCloseTo(scrollDistance * 3.8, 0);
+  expect(await page.evaluate(() => document.documentElement.scrollHeight - window.innerHeight)).toBeCloseTo(scrollDistance * 6.5, 0);
   await page.mouse.wheel(0, scrollDistance * 0.48);
   await expect(page.locator('.eraser-cursor')).toBeVisible();
   await expect.poll(() => ink(page)).toBeLessThan(initialInk * 0.85);
@@ -102,7 +102,9 @@ test('scroll over canvas erases pixels along the visible cursor and reverses exa
   await expect.poll(() => image(page)).toBe(before);
   await scrollScene(page, 1);
   await expect.poll(() => image(page)).toBe(residue);
-  await page.getByRole('button', { name: 'Replay introduction', exact: false }).click();
+  await page.getByRole('button', { name: 'File', exact: true }).click();
+  await page.getByRole('button', { name: 'Recent images', exact: true }).click();
+  await page.getByRole('button', { name: 'Introduction', exact: true }).click();
   await expect.poll(() => image(page)).toBe(before);
 });
 
@@ -128,7 +130,9 @@ test('mobile composition fits, touch can scroll, help and reduced motion work', 
   await scrollScene(page, 1);
   await expect.poll(() => ink(page)).toBe(0);
   await expect(page.locator('.eraser-cursor')).toBeHidden();
-  await page.getByRole('button', { name: 'Replay introduction', exact: false }).click();
+  await page.getByRole('button', { name: 'File', exact: true }).click();
+  await page.getByRole('button', { name: 'Recent images', exact: true }).click();
+  await page.getByRole('button', { name: 'Introduction', exact: true }).click();
   await expect.poll(() => image(page)).toBe(before);
   await page.setViewportSize({ width: 1100, height: 700 });
   await expect(canvas).toHaveAttribute('width', '960');
@@ -147,15 +151,20 @@ test('education timeline connects internships, reverses and fits on mobile', asy
   await expect(page.getByRole('status')).toContainText('revisit');
   await expect.poll(() => image(page)).not.toBe(education);
   const entries = await page.locator('.sr-only article').evaluateAll(articles => articles.map(article => article.textContent));
-  expect(entries).toHaveLength(6);
+  expect(entries).toHaveLength(8);
   expect(entries[0]).toContain('Cégep de Trois-Rivières');
-  expect(entries[1]).toContain('2021 · Internship');
+  expect(entries[1]).toContain('May–Aug 2021 · Internship');
   expect(entries[1]).toContain('Proaxion');
   expect(entries[2]).toContain('Professional work');
   expect(entries[3]).toContain('Professional work');
   expect(entries[4]).toContain('Université de Sherbrooke');
   expect(entries[5]).toContain('2024 · Internship');
   expect(entries[5]).toContain('MesAieux');
+  expect(entries[5]).toContain('PostgreSQL');
+  expect(entries[6]).toContain('Humanware');
+  expect(entries[6]).toContain('accessibility');
+  expect(entries[7]).toContain('Djob');
+  expect(entries[7]).toContain('Flutter');
   await page.screenshot({ path: '/tmp/paint-experience.png' });
   const work = await image(page);
   const rect = (await page.locator('canvas').boundingBox())!;
@@ -208,9 +217,18 @@ test('Paint builds the timeline with typing boxes and a moving pencil', async ({
 });
 
 
-test('File menu downloads the CV PDF and recent sections navigate the timeline', async ({ page }) => {
+test('Save icon and File menu download the CV PDF and recent images navigate the timeline', async ({ page }) => {
   await ready(page);
+  await expect(page.getByRole('button', { name: /Replay introduction/ })).toHaveCount(0);
+  const toolbarDownload = page.waitForEvent('download');
+  await page.getByRole('link', { name: 'Download CV (PDF)', exact: true }).click();
+  expect((await toolbarDownload).suggestedFilename()).toBe('Louka-Gauthier-CV.pdf');
   await page.getByRole('button', { name: 'File', exact: true }).click();
+  await expect(page.locator('.file-menu > button, .file-menu > .recent-files > button, .file-menu > a'))
+    .toHaveText(['NewReload the page', 'OpenChoose a project image', 'Recent images▸', 'Save asCV · PDF document', 'About PaintView website source on GitHub']);
+  const about = page.getByRole('link', { name: /About Paint/ });
+  await expect(about).toHaveAttribute('href', 'https://github.com/LoukaG/loukag.com');
+  await expect(about).toHaveAttribute('target', '_blank');
   const download = page.waitForEvent('download');
   await page.getByRole('link', { name: 'Save as' }).click();
   expect((await download).suggestedFilename()).toBe('Louka-Gauthier-CV.pdf');
@@ -219,12 +237,12 @@ test('File menu downloads the CV PDF and recent sections navigate the timeline',
   expect((await pdf.body()).subarray(0, 5).toString()).toBe('%PDF-');
   await expect(page.locator('.file-menu')).toBeHidden();
   await page.getByRole('button', { name: 'File', exact: true }).click();
-  const recent = page.getByRole('button', { name: 'Recently opened', exact: true });
-  const submenu = page.getByRole('group', { name: 'Recently opened shortcuts' });
+  const recent = page.getByRole('button', { name: 'Recent images', exact: true });
+  const submenu = page.getByRole('group', { name: 'Recent images shortcuts' });
   await expect(submenu).toBeHidden();
   await recent.hover();
   await expect(submenu).toBeVisible();
-  await expect(submenu.getByRole('button')).toHaveCount(2);
+  await expect(submenu.getByRole('button')).toHaveText(['Introduction', 'Education & Experience', 'Projects', 'Contact']);
   await submenu.getByRole('button', { name: 'Education & Experience', exact: true }).click();
   await expect(page.locator('.file-menu')).toBeHidden();
   await expect(page.getByRole('status')).toContainText('timeline');
@@ -236,6 +254,30 @@ test('File menu downloads the CV PDF and recent sections navigate the timeline',
   await submenu.getByRole('button', { name: 'Introduction', exact: true }).click();
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
   await expect.poll(() => ink(page)).toBeGreaterThan(45000);
+  await page.getByRole('button', { name: 'File', exact: true }).click();
+  await recent.click();
+  await submenu.getByRole('button', { name: 'Projects', exact: true }).click();
+  await expect(page.locator('.file-menu')).toBeHidden();
+  await expect(page.getByRole('dialog', { name: 'Open a project', exact: true })).toBeVisible();
+  expect(await page.evaluate(() => window.scrollY)).toBe(0);
+  await page.keyboard.press('Escape');
+  await page.getByRole('button', { name: 'File', exact: true }).click();
+  await recent.click();
+  await submenu.getByRole('button', { name: 'Contact', exact: true }).click();
+  await expect(page.locator('.file-menu')).toBeHidden();
+  await expect(page.getByRole('link', { name: 'Email: loukagauthier55@gmail.com' })).toBeVisible();
+});
+
+test('New reloads the page', async ({ page }) => {
+  await ready(page);
+  await page.getByRole('button', { name: 'File', exact: true }).click();
+  await Promise.all([
+    page.waitForEvent('load'),
+    page.getByRole('button', { name: 'New', exact: false }).click(),
+  ]);
+  await expect(page.locator('astro-island')).not.toHaveAttribute('ssr');
+  expect(await page.evaluate(() => (performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming).type)).toBe('reload');
+  await expect(page.locator('.file-menu')).toBeHidden();
 });
 
 
@@ -245,39 +287,162 @@ test('scrolling past the timeline opens a project picker and project images in P
   const picker = page.getByRole('dialog', { name: 'Open a project', exact: true });
   await expect(picker).toBeVisible();
   await expect(picker.getByRole('radio')).toHaveCount(3);
+  const lockedScroll = await page.evaluate(() => window.scrollY);
+  await expect(page.locator('html')).toHaveCSS('overflow', 'hidden');
+  await page.mouse.move(5, 5);
+  await page.mouse.wheel(0, 1200);
+  await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+  expect(await page.evaluate(() => window.scrollY)).toBe(lockedScroll);
   await page.screenshot({ path: '/tmp/paint-project-picker.png' });
   await picker.getByRole('radio', { name: 'Just Flip A Coin.png' }).check();
   await picker.getByRole('button', { name: 'Open', exact: true }).click();
   await expect(picker).toBeHidden();
-  await expect(page.locator('canvas')).toHaveAttribute('aria-label', /Just Flip A Coin/);
-  await expect(page.getByRole('link', { name: /Visit project/ })).toHaveAttribute('href', 'https://justflipacoin.loukag.com');
+  await expect(page.locator('canvas')).toHaveAttribute('aria-label', /Just Flip A Coin.*7,500\+/);
+  await expect(page.getByRole('link', { name: /Visit project/ })).toHaveAttribute('href', 'https://play.google.com/store/apps/details?id=com.loukag.just_flip_a_coin');
   const coin = await image(page);
   await page.screenshot({ path: '/tmp/paint-project-coin.png' });
   const download = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Save image', exact: true }).click();
+  await page.keyboard.press('ControlOrMeta+s');
   expect((await download).suggestedFilename()).toBe('Just Flip A Coin.png');
-  await page.getByRole('button', { name: 'Projects…', exact: true }).click();
-  await picker.getByRole('textbox', { name: 'Search projects' }).fill('UNACIEM');
+  await page.getByRole('button', { name: 'File', exact: true }).click();
+  await page.getByRole('button', { name: 'Recent images', exact: true }).click();
+  await page.getByRole('button', { name: 'Projects', exact: true }).click();
+  await expect(picker).toBeVisible();
+  await picker.getByRole('textbox', { name: 'Search projects' }).fill('PolyfirGroup');
   await expect(picker.getByRole('radio')).toHaveCount(1);
   await picker.getByRole('button', { name: 'Open', exact: true }).click();
-  await expect(page.locator('canvas')).toHaveAttribute('aria-label', /UNACIEM/);
-  await expect(page.getByRole('link', { name: /View on GitHub/ })).toHaveAttribute('href', 'https://github.com/LoukaG/UNACIEM');
+  await expect(page.locator('canvas')).toHaveAttribute('aria-label', /PolyfirGroup.*500\+ registered users and 1,000\+ downloads/);
+  await page.screenshot({ path: '/tmp/paint-project-polyfirgroup.png' });
+  await expect(page.getByRole('link', { name: /Visit project/ })).toHaveAttribute('href', 'https://polyfirgroup.com');
   expect(await image(page)).not.toBe(coin);
   await page.setViewportSize({ width: 390, height: 844 });
   await scrollScene(page, 3.8);
-  await page.getByRole('button', { name: 'Projects…', exact: true }).click();
+  await page.screenshot({ path: '/tmp/paint-project-polyfirgroup-mobile.png' });
+  await page.getByRole('button', { name: 'Choose another project…', exact: true }).click();
   await expect(picker).toBeVisible();
   await page.screenshot({ path: '/tmp/paint-project-picker-mobile.png' });
-  await picker.getByRole('radio', { name: 'Habitflow.png' }).check();
+  await picker.getByRole('radio', { name: 'PDF Toolkit.png' }).check();
   await picker.getByRole('button', { name: 'Open', exact: true }).click();
-  await expect(page.locator('canvas')).toHaveAttribute('aria-label', /Habitflow/);
-  await expect(page.getByRole('link', { name: /View on GitHub/ })).toHaveAttribute('href', 'https://github.com/LoukaG/habitflow');
-  await page.screenshot({ path: '/tmp/paint-project-habitflow-mobile.png' });
+  await expect(page.locator('canvas')).toHaveAttribute('aria-label', /PDF Toolkit/);
+  await expect(page.getByRole('link', { name: /Visit project/ })).toHaveAttribute('href', 'https://apps.microsoft.com/detail/9nqsnbhzw382');
+  await page.screenshot({ path: '/tmp/paint-project-pdf-toolkit-mobile.png' });
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(390);
-  await page.getByRole('button', { name: 'Projects…', exact: true }).click();
+  await page.getByRole('button', { name: 'Choose another project…', exact: true }).click();
   await page.keyboard.press('Escape');
   await expect(picker).toBeHidden();
+  await expect(page.locator('html')).not.toHaveCSS('overflow', 'hidden');
+  const unlockedScroll = await page.evaluate(() => window.scrollY);
+  await page.mouse.move(5, 5);
+  await page.mouse.wheel(0, -150);
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBeLessThan(unlockedScroll);
   await scrollScene(page, 3.3);
-  await expect(page.getByRole('link', { name: /View on GitHub/ })).toBeHidden();
+  await expect(page.getByRole('link', { name: /Visit project/ })).toBeHidden();
   await expect(page.getByRole('status')).toContainText('revisit');
+});
+
+test('the bucket fills the project black before contact details type in', async ({ page }) => {
+  await ready(page);
+  await scrollScene(page, 3.8);
+  const picker = page.getByRole('dialog', { name: 'Open a project', exact: true });
+  await picker.getByRole('radio', { name: 'PDF Toolkit.png' }).check();
+  await picker.getByRole('button', { name: 'Open', exact: true }).click();
+  await expect(page.locator('canvas')).toHaveAttribute('aria-label', /PDF Toolkit/);
+  const project = await image(page);
+  await scrollScene(page, 4.1);
+  await expect(page.locator('.paint-build-cursor')).toHaveAttribute('data-tool', 'fill');
+  await expect(page.locator('.build-bucket')).toBeVisible();
+  await expect(page.getByRole('link', { name: /Visit project/ })).toBeHidden();
+  await scrollScene(page, 4.3);
+  await expect(page.getByRole('status')).toContainText('Filling');
+  await expect.poll(() => page.locator('.paint-build-cursor').evaluate((cursor: HTMLElement) => parseFloat(cursor.style.left))).toBe(78);
+  const fill = await image(page);
+  await page.screenshot({ path: '/tmp/paint-bucket-fill.png' });
+  await scrollScene(page, 4.44);
+  await expect.poll(() => page.locator('canvas').evaluate((canvas: HTMLCanvasElement) => {
+    const pixels = canvas.getContext('2d')!.getImageData(0, 0, canvas.width, canvas.height).data;
+    for (let i = 0; i < pixels.length; i += 4) if (pixels[i] || pixels[i + 1] || pixels[i + 2]) return false;
+    return true;
+  })).toBe(true);
+  await scrollScene(page, 4.48);
+  await expect(page.locator('.paint-text-box')).toBeVisible();
+  await expect(page.locator('.paint-build-cursor')).toHaveAttribute('data-tool', 'text');
+  await expect(page.locator('.contact-hotspot')).toHaveCount(0);
+  await scrollScene(page, 6.5);
+  await expect(page.getByRole('link', { name: 'Email: loukagauthier55@gmail.com' })).toHaveAttribute('href', 'mailto:loukagauthier55@gmail.com');
+  await expect(page.locator('a[href^="tel:"]')).toHaveCount(0);
+  await expect(page.locator('.contact-hotspot')).toHaveCount(3);
+  await expect(page.locator('.paint-build-cursor')).toBeHidden();
+  await page.screenshot({ path: '/tmp/paint-contact.png' });
+  await scrollScene(page, 4.3);
+  await expect.poll(() => image(page)).toBe(fill);
+  await scrollScene(page, 3.6);
+  await expect.poll(() => image(page)).toBe(project);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await scrollScene(page, 6.5);
+  await expect(page.getByRole('link', { name: /Email:/ })).toBeVisible();
+  await page.screenshot({ path: '/tmp/paint-contact-mobile.png' });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(390);
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await scrollScene(page, 4.3);
+  await expect(page.locator('.paint-build-cursor')).toBeHidden();
+  await scrollScene(page, 4.6);
+  await expect(page.locator('.contact-hotspot')).toHaveCount(3);
+});
+
+test('Clippy resets only on scrolling, respects dialogs and shares one message per section', async ({ page }) => {
+  await ready(page);
+  await page.clock.install();
+  // Re-arm after installing the clock so the inactivity timer uses virtual time.
+  await page.evaluate(() => window.dispatchEvent(new Event('scroll')));
+  const clippy = page.getByRole('complementary', { name: 'Clippy', exact: true });
+  await page.clock.runFor(14_000);
+  await expect(clippy).toBeHidden();
+  await scrollScene(page, 0.01);
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
+  await page.clock.runFor(100);
+  await page.clock.runFor(14_000);
+  await expect(clippy).toBeHidden();
+  await page.mouse.move(10, 10);
+  await page.mouse.click(5, 5);
+  await page.keyboard.press('Shift');
+  await page.clock.runFor(1_001);
+  await expect(clippy).toContainText('He drew that himself. Unfortunately. Scroll to see more of his drawing');
+  await page.screenshot({ path: '/tmp/paint-clippy-desktop.png' });
+  await page.getByRole('button', { name: 'Dismiss Clippy' }).click();
+  await page.clock.runFor(30_000);
+  await expect(clippy).toBeHidden();
+
+  await scrollScene(page, 1.8);
+  await page.clock.runFor(100);
+  await expect(page.locator('.paint-scroll-hint')).toContainText('Education');
+  await page.clock.runFor(100);
+  await expect(clippy).toBeHidden();
+  await page.clock.runFor(15_001);
+  await expect(clippy).toContainText("That's a lot of experience for someone who still uses Paint.");
+
+  await scrollScene(page, 3.8);
+  await page.clock.runFor(100);
+  const picker = page.getByRole('dialog', { name: 'Open a project', exact: true });
+  await expect(picker).toBeVisible();
+  await page.clock.runFor(20_000);
+  await expect(clippy).toBeHidden();
+  await picker.getByRole('button', { name: 'Cancel', exact: true }).click();
+  await page.clock.runFor(15_001);
+  await expect(clippy).toContainText('Some of these actually work!');
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await scrollScene(page, 6.5);
+  await page.clock.runFor(100);
+  await expect(page.locator('.paint-scroll-hint')).toContainText('Thanks');
+  await page.clock.runFor(100);
+  await expect(clippy).toBeHidden();
+  await page.clock.runFor(15_001);
+  await expect(clippy).toContainText("You made it! Most people don't scroll this far.");
+  const rect = (await clippy.boundingBox())!;
+  expect(rect.x).toBeGreaterThanOrEqual(0);
+  expect(rect.x + rect.width).toBeLessThanOrEqual(390);
+  await page.screenshot({ path: '/tmp/paint-clippy-mobile.png' });
+  await scrollScene(page, 0);
+  await page.clock.runFor(15_100);
+  await expect(clippy).toBeHidden();
 });
