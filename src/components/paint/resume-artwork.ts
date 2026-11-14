@@ -16,6 +16,7 @@ const timeline = [
   { date: "Jan–Apr 2024", kind: "Internship", doodle: "browser", title: "Web Developer Intern", place: "MesAieux", details: ["Developed backend and frontend web pages with .NET.", "Created and optimized SQL queries and stored procedures for large PostgreSQL databases.", "Maintained legacy code and modernized it to C#."] },
   { date: "Sep–Dec 2024", kind: "Internship", doodle: "chip", title: "Android Developer Intern", place: "Humanware, Longueuil", details: ["Built Android apps for a braille tablet running a custom Android OS.", "Worked in a Scrum team with designers, stakeholders and visually impaired users.", "Implemented features focused on accessibility and inclusive user experiences."] },
   { date: "May–Aug 2025", kind: "Internship", doodle: "code", title: "Mobile Developer Intern", place: "Djob", details: ["Developed the mobile app with Flutter.", "Selected the technology stack and defined the architecture.", "Worked with substantial autonomy and ownership in a startup."] },
+  { date: "Apr 2026–Present", kind: "Professional work", doodle: "api", title: "Full-Stack Developer / Architecture & AI", place: "Attraction", details: ["Developing modern web applications with TypeScript.", "Designing cloud architectures on AWS.", "Integrating AI-powered development tools such as Claude Code and OpenAI Codex into daily workflows to improve development efficiency and software quality."] },
 ] as const;
 
 export const resume = [{ title: "Education & Experience", entries: timeline }];

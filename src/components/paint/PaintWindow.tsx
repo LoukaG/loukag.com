@@ -86,7 +86,7 @@ export function PaintWindow({ progress, reducedMotion, onReplay, onTimeline, onP
         <div className="quick-access">
           <a
             href="/cv.pdf"
-            download="Louka-Gauthier-CV.pdf"
+            download="CV Louka Gauthier (en).pdf"
             title="Download CV (PDF)"
             aria-label="Download CV (PDF)"
           >
@@ -163,7 +163,7 @@ export function PaintWindow({ progress, reducedMotion, onReplay, onTimeline, onP
                   )}
                 </div>
                 <hr />
-                <a href="/cv.pdf" download="Louka-Gauthier-CV.pdf" onClick={() => setFileOpen(false)}>
+                <a href="/cv.pdf" download="CV Louka Gauthier (en).pdf" onClick={() => setFileOpen(false)}>
                   <ToolGlyph name="save" size={25} />
                   <span>Save as<small>CV · PDF document</small></span>
                 </a>

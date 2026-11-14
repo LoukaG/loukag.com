@@ -27,7 +27,7 @@ Tests use installed Google Chrome and cover the initial composition, drawing, un
 - Paint opens immediately and fills the viewport. The application stays pinned while the page scrolls.
 - The introduction is drawn into the actual bitmap. A square eraser follows a continuous serpentine path, shared with the white strokes that remove the artwork.
 - Scroll up or choose **File → Recent images → Introduction** to restore the introduction. Replay preserves the visitor's own drawing layer.
-- Draw with mouse or pen, select a color and brush size, use shapes, undo/redo, clear, or export a PNG with Ctrl/Cmd + S. The top Save icon downloads the PDF CV. User drawings remain editable after the introduction has been erased.
+- Draw with mouse or pen, select a color and brush size, use shapes, undo/redo, clear, or export a PNG with Ctrl/Cmd + S. The top Save icon downloads the English CV as a PDF. User drawings remain editable after the introduction has been erased.
 - Ctrl/Cmd+Z undoes, Ctrl/Cmd+Y or Ctrl/Cmd+Shift+Z redoes, and Ctrl/Cmd+S saves.
 - View includes zoom and gridlines. At 100%, the canvas fits the available space. Larger zoom levels allow panning inside the canvas workspace.
 - Narrow screens stack the introduction and portrait. Touch gestures scroll the story; drawing uses a mouse or pen. The ribbon scrolls horizontally.

@@ -151,7 +151,7 @@ test('education timeline connects internships, reverses and fits on mobile', asy
   await expect(page.getByRole('status')).toContainText('revisit');
   await expect.poll(() => image(page)).not.toBe(education);
   const entries = await page.locator('.sr-only article').evaluateAll(articles => articles.map(article => article.textContent));
-  expect(entries).toHaveLength(8);
+  expect(entries).toHaveLength(9);
   expect(entries[0]).toContain('Cégep de Trois-Rivières');
   expect(entries[1]).toContain('May–Aug 2021 · Internship');
   expect(entries[1]).toContain('Proaxion');
@@ -165,6 +165,12 @@ test('education timeline connects internships, reverses and fits on mobile', asy
   expect(entries[6]).toContain('accessibility');
   expect(entries[7]).toContain('Djob');
   expect(entries[7]).toContain('Flutter');
+  expect(entries[8]).toContain('Apr 2026–Present · Professional work');
+  expect(entries[8]).toContain('Full-Stack Developer / Architecture & AI');
+  expect(entries[8]).toContain('Attraction');
+  expect(entries[8]).toContain('TypeScript');
+  expect(entries[8]).toContain('AWS');
+  expect(entries[8]).toContain('Claude Code and OpenAI Codex');
   await page.screenshot({ path: '/tmp/paint-experience.png' });
   const work = await image(page);
   const rect = (await page.locator('canvas').boundingBox())!;
@@ -217,12 +223,12 @@ test('Paint builds the timeline with typing boxes and a moving pencil', async ({
 });
 
 
-test('Save icon and File menu download the CV PDF and recent images navigate the timeline', async ({ page }) => {
+test('Save icon and File menu download the PDF CV and recent images navigate the timeline', async ({ page }) => {
   await ready(page);
   await expect(page.getByRole('button', { name: /Replay introduction/ })).toHaveCount(0);
   const toolbarDownload = page.waitForEvent('download');
   await page.getByRole('link', { name: 'Download CV (PDF)', exact: true }).click();
-  expect((await toolbarDownload).suggestedFilename()).toBe('Louka-Gauthier-CV.pdf');
+  expect((await toolbarDownload).suggestedFilename()).toBe('CV Louka Gauthier (en).pdf');
   await page.getByRole('button', { name: 'File', exact: true }).click();
   await expect(page.locator('.file-menu > button, .file-menu > .recent-files > button, .file-menu > a'))
     .toHaveText(['NewReload the page', 'OpenChoose a project image', 'Recent images▸', 'Save asCV · PDF document', 'About PaintView website source on GitHub']);
@@ -231,10 +237,10 @@ test('Save icon and File menu download the CV PDF and recent images navigate the
   await expect(about).toHaveAttribute('target', '_blank');
   const download = page.waitForEvent('download');
   await page.getByRole('link', { name: 'Save as' }).click();
-  expect((await download).suggestedFilename()).toBe('Louka-Gauthier-CV.pdf');
-  const pdf = await page.request.get('/cv.pdf');
-  expect(pdf.ok()).toBe(true);
-  expect((await pdf.body()).subarray(0, 5).toString()).toBe('%PDF-');
+  expect((await download).suggestedFilename()).toBe('CV Louka Gauthier (en).pdf');
+  const doc = await page.request.get('/cv.pdf');
+  expect(doc.ok()).toBe(true);
+  expect((await doc.body()).subarray(0, 5).toString()).toBe('%PDF-');
   await expect(page.locator('.file-menu')).toBeHidden();
   await page.getByRole('button', { name: 'File', exact: true }).click();
   const recent = page.getByRole('button', { name: 'Recent images', exact: true });
