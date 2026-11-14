@@ -22,6 +22,22 @@ npm run build
 
 Tests use installed Google Chrome and cover the initial composition, drawing, undo/redo, clear, PNG export, actual pixel erasure, cursor alignment, exact scroll reversal, replay, responsive layout, and reduced motion.
 
+## Deploy with Docker Compose
+
+On a server with Docker Engine and the Compose plugin installed, run these commands from the repository directory:
+
+```sh
+docker compose up -d --build
+```
+
+The site is available at `http://YOUR_SERVER_IP:8080` (or `http://localhost:8080` locally). Docker builds the static site with Node and serves it with Nginx. No Node installation is needed on the server.
+
+To use port 80 instead, run `PORT=80 docker compose up -d --build`. Allow the chosen port through your server's firewall. For HTTPS on `loukag.com`, point its DNS at your server and configure your reverse proxy to forward to this service's port 8080.
+
+After pulling site changes, run `docker compose up -d --build` again. View logs with `docker compose logs -f website`, and stop the service with `docker compose down`.
+
+Reference: [Astro's Docker deployment guide](https://docs.astro.build/en/recipes/docker/).
+
 ## Behavior
 
 - Paint opens immediately and fills the viewport. The application stays pinned while the page scrolls.
