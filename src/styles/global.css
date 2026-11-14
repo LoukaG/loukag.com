@@ -1013,7 +1013,7 @@ button:focus:not(:focus-visible) {
   padding: 6px;
   z-index: 10;
 }
-.file-menu button {
+.file-menu button, .file-menu a {
   padding: 12px;
   display: flex;
   align-items: center;
@@ -1023,7 +1023,7 @@ button:focus:not(:focus-visible) {
   width: 100%;
   text-align: left;
 }
-.file-menu button:hover {
+.file-menu button:hover, .file-menu a:hover {
   background: linear-gradient(#fff4d1, #ffdf96);
   border-color: #dfb55a;
 }
@@ -1946,7 +1946,7 @@ button:focus:not(:focus-visible) {
 
 /* A single maximized Paint window stays pinned throughout the erasing scene. */
 :root { background: #dce9f6; }
-.paint-story { position: relative; height: 420svh; }
+.paint-story { position: relative; height: calc(100svh + 320svh / 3 * 3.8); }
 .paint-viewport {
   position: sticky;
   top: 0;
@@ -2027,6 +2027,78 @@ button:focus:not(:focus-visible) {
   .paint-only-window .ribbon { height: 90px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .paint-story { height: 220svh; }
+
   .eraser-cursor { display: none; }
+}
+
+/* Paint's transient editing tools sit above the bitmap and stay out of exports. */
+.paint-build-cursor, .paint-text-box { position: absolute; pointer-events: none; z-index: 3; }
+.paint-build-cursor[hidden], .paint-text-box[hidden] { display: none; }
+.paint-build-cursor { width: 28px; height: 28px; }
+.build-pencil { position: absolute; left: -4px; top: -26px; filter: drop-shadow(1px 2px 1px #0003); }
+.build-text-caret { display: none; position: absolute; height: 20px; width: 7px; border-top: 1px solid #111; border-bottom: 1px solid #111; transform: translate(-3px, -10px); }
+.build-text-caret::after { content: ""; position: absolute; left: 3px; top: 0; height: 100%; border-left: 1px solid #111; }
+.paint-build-cursor[data-tool="text"] .build-text-caret { display: block; }
+.paint-build-cursor[data-tool="text"] .build-pencil { display: none; }
+.paint-text-box { border: 1px dashed #555; }
+.paint-text-box i { position: absolute; width: 5px; height: 5px; background: white; border: 1px solid #555; transform: translate(-50%, -50%); }
+.paint-text-box i:nth-child(1) { left: 0; top: 0; }
+.paint-text-box i:nth-child(2) { left: 50%; top: 0; }
+.paint-text-box i:nth-child(3) { left: 100%; top: 0; }
+.paint-text-box i:nth-child(4) { left: 100%; top: 50%; }
+.paint-text-box i:nth-child(5) { left: 100%; top: 100%; }
+.paint-text-box i:nth-child(6) { left: 50%; top: 100%; }
+.paint-text-box i:nth-child(7) { left: 0; top: 100%; }
+.paint-text-box i:nth-child(8) { left: 0; top: 50%; }
+
+.file-menu a { color: inherit; text-decoration: none; }
+.file-menu .icon { flex-shrink: 0; }
+
+.recent-files { position: relative; }
+.submenu-arrow { margin-left: auto; }
+.recent-submenu { position: absolute; left: 100%; top: 0; width: 260px; padding: 5px; background: #fbfcfe; border: 1px solid #7c99b3; box-shadow: 2px 3px 8px #0004; }
+@media (max-width: 600px) {
+  .recent-submenu { position: static; width: 100%; box-shadow: none; }
+}
+
+.project-picker { position: fixed; inset: 0; margin: auto; width: min(800px, calc(100vw - 24px)); max-height: calc(100svh - 32px); padding: 6px; color: #172b40; overflow: auto; }
+.project-picker::backdrop { background: #17314b40; }
+.project-picker > .title-bar { min-height: 30px; gap: 7px; }
+.project-picker > .title-bar > span { flex: 1; }
+.project-picker form { background: #fff; border: 1px solid #8ea8bc; }
+.picker-location { display: flex; align-items: center; gap: 12px; padding: 12px; background: #f5f8fb; }
+.picker-location > div { display: flex; align-items: center; gap: 9px; flex: 1; border: 1px solid #a8bdcd; padding: 5px 8px; background: white; }
+.picker-location input { min-width: 0; width: 175px; border: 1px solid #a8bdcd; padding: 6px; }
+.picker-toolbar { display: flex; justify-content: space-between; gap: 12px; padding: 8px 16px; background: linear-gradient(#f6faff, #e1ebf5); border-block: 1px solid #c6d4e1; font-size: 12px; }
+.picker-toolbar span { color: #67798a; }
+.picker-body { display: flex; min-height: 270px; }
+.picker-body aside { width: 150px; flex-shrink: 0; padding: 20px 12px; border-right: 1px solid #dce2e7; font-size: 12px; }
+.picker-body aside strong, .picker-body aside small { display: block; margin: 0 0 12px; }
+.picker-body aside span { display: flex; align-items: center; gap: 8px; padding: 7px; margin-bottom: 15px; background: #e5f0fb; }
+.picker-body aside small { color: #6f7f8c; }
+.picker-files { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); align-content: start; gap: 10px; padding: 20px 12px; flex: 1; min-width: 0; }
+.picker-file { position: relative; display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 12px 6px; border: 1px solid transparent; border-radius: 3px; cursor: pointer; font-size: 12px; text-align: center; overflow-wrap: anywhere; }
+.picker-file img { width: 100%; max-width: 140px; aspect-ratio: 16 / 9; object-fit: contain; border: 1px solid #b9c9d4; box-shadow: 1px 2px 3px #0002; background: white; }
+.picker-file input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.picker-file.is-selected { background: linear-gradient(#eef8ff, #cce6fc); border-color: #84b6dd; }
+.picker-file:hover { border-color: #84b6dd; background: #eaf5ff; }
+.picker-file:focus-within { outline: 1px dotted #254966; outline-offset: -4px; }
+.picker-empty { grid-column: 1 / -1; color: #6f7f8c; padding: 20px; }
+.picker-footer { padding: 15px; background: #f1f4f8; border-top: 1px solid #dce2e7; }
+.picker-footer label { display: flex; align-items: center; gap: 14px; font-size: 12px; }
+.picker-footer input { flex: 1; min-width: 0; padding: 5px 7px; border: 1px solid #8daac0; background: white; }
+.picker-footer > div { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
+.picker-footer > div > span { flex: 1; color: #65798a; font-size: 12px; }
+.project-link { position: absolute; left: 43.75%; bottom: 8%; color: #183ed7; font-family: "Comic Sans MS", "Chalkboard SE", "Segoe Print", cursive; font-size: clamp(13px, 1.5vw, 20px); text-decoration: underline; text-underline-offset: 5px; }
+.project-link:hover { color: #8335b1; }
+@media (max-width: 600px) {
+  .picker-location { gap: 6px; flex-wrap: wrap; padding: 8px; }
+  .picker-location > div { min-width: 200px; }
+  .picker-location input { width: 100%; }
+  .picker-body aside { display: none; }
+  .picker-files { gap: 4px; padding: 12px 6px; }
+  .picker-body { min-height: 220px; }
+  .picker-footer { padding: 10px; }
+  .picker-toolbar span { display: none; }
+  .project-link { left: 7%; bottom: 5%; font-size: 15px; }
 }

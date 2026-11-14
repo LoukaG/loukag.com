@@ -2,19 +2,33 @@ import { useEffect, useRef, useState } from "react";
 import { Icon } from "../desktop/Icon";
 import { PaintRibbon } from "./PaintRibbon";
 import { PaintCanvas } from "./PaintCanvas";
+import { ProjectPicker } from "./ProjectPicker";
+import { type Project } from "./project-artwork";
 import { ToolGlyph } from "./ToolGlyph";
 import type { CanvasHandle, PaintTool, Point } from "./types";
 interface Props {
   progress: number;
   reducedMotion: boolean;
   onReplay: () => void;
+  onTimeline: () => void;
+  onProjects: () => void;
 }
-export function PaintWindow({ progress, reducedMotion, onReplay }: Props) {
+export function PaintWindow({ progress, reducedMotion, onReplay, onTimeline, onProjects }: Props) {
   const [tool, setTool] = useState<PaintTool>("brush"),
     [color, setColor] = useState("#000000"),
     [size, setSize] = useState(3),
     [zoom, setZoom] = useState(100),
     [grid, setGrid] = useState(false);
+  const [project, setProject] = useState<Project | null>(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [pickerDismissed, setPickerDismissed] = useState(false);
+  const currentProject = progress >= 3.35 ? project : null;
+  useEffect(() => {
+    if (progress < 3.35) { setPickerDismissed(false); return; }
+    if (progress >= 3.5 && !project && !pickerDismissed) setPickerOpen(true);
+  }, [progress, project, pickerDismissed]);
+  const [recentOpen, setRecentOpen] = useState(false);
+  const [animationTool, setAnimationTool] = useState<"text" | "pencil" | null>(null);
   const [tab, setTab] = useState<"home" | "view">("home"),
     [fileOpen, setFileOpen] = useState(false),
     [helpOpen, setHelpOpen] = useState(false),
@@ -33,7 +47,7 @@ export function PaintWindow({ progress, reducedMotion, onReplay }: Props) {
   useEffect(() => {
     const key = (e: KeyboardEvent) => {
       if (
-        (e.target as HTMLElement).matches("input,select,textarea")
+        (e.target as HTMLElement).matches("input,select,textarea") || (e.target as HTMLElement).closest("dialog[open]")
       )
         return;
       if (e.ctrlKey || e.metaKey) {
@@ -90,7 +104,8 @@ export function PaintWindow({ progress, reducedMotion, onReplay }: Props) {
           </button>
           <span>▾</span>
         </div>
-        <span className="paint-title">Louka Gauthier - Paint</span>
+        <span className="paint-title">{currentProject ? `${currentProject.file} - Paint` : "Louka Gauthier - Paint"}</span>
+        {progress >= 3.3 && <button className="replay-intro" onClick={() => setPickerOpen(true)}>Projects…</button>}
         <button className="replay-intro" onClick={onReplay} title="Restore the introduction">↶ Replay introduction</button>
       </header>
       <div className="paint-inner">
@@ -100,7 +115,7 @@ export function PaintWindow({ progress, reducedMotion, onReplay }: Props) {
               className={`file-tab ${fileOpen ? "is-open" : ""}`}
               aria-label="File"
               aria-expanded={fileOpen}
-              onClick={() => setFileOpen(!fileOpen)}
+              onClick={() => { setFileOpen(!fileOpen); setRecentOpen(false); }}
             >
               <span className="file-mini">▤</span>
               <span>▾</span>
@@ -118,22 +133,34 @@ export function PaintWindow({ progress, reducedMotion, onReplay }: Props) {
                     New<small>Start a blank canvas</small>
                   </span>
                 </button>
-                <button
-                  onClick={() => {
-                    canvas.current?.save();
-                    setFileOpen(false);
-                  }}
-                >
+                <button onClick={() => { setPickerOpen(true); setFileOpen(false); }}>
+                  <Icon name="folder" size={25} /><span>Open<small>Choose a project image</small></span>
+                </button>
+                <a href="/cv.pdf" download="Louka-Gauthier-CV.pdf" onClick={() => setFileOpen(false)}>
                   <ToolGlyph name="save" size={25} />
-                  <span>
-                    Save as<small>PNG picture</small>
-                  </span>
-                </button>
+                  <span>Save as<small>CV · PDF document</small></span>
+                </a>
                 <hr />
-                <button onClick={() => { onReplay(); setFileOpen(false); }}>
-                  <Icon name="paint" size={25} />
-                  <span>Replay introduction</span>
-                </button>
+                <div className="recent-files"
+                  onMouseEnter={() => setRecentOpen(true)}
+                  onMouseLeave={() => setRecentOpen(false)}
+                  onFocusCapture={() => setRecentOpen(true)}
+                  onBlurCapture={event => { if (!event.currentTarget.contains(event.relatedTarget)) setRecentOpen(false); }}>
+                  <button aria-expanded={recentOpen} aria-controls="recently-opened-list" onClick={() => setRecentOpen(true)}>
+                    <Icon name="folder" size={25} />
+                    <span>Recently opened</span><span className="submenu-arrow" aria-hidden="true">▸</span>
+                  </button>
+                  {recentOpen && (
+                    <div id="recently-opened-list" className="recent-submenu" role="group" aria-label="Recently opened shortcuts">
+                      <button onClick={() => { onReplay(); setFileOpen(false); setRecentOpen(false); }}>
+                        <Icon name="paint" size={25} /><span>Introduction</span>
+                      </button>
+                      <button onClick={() => { onTimeline(); setFileOpen(false); setRecentOpen(false); }}>
+                        <Icon name="document" size={25} /><span>Education &amp; Experience</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </div>
@@ -162,7 +189,7 @@ export function PaintWindow({ progress, reducedMotion, onReplay }: Props) {
         </nav>
         <PaintRibbon
           tab={tab}
-          tool={erasing ? "eraser" : tool}
+          tool={erasing ? "eraser" : animationTool ?? tool}
           color={color}
           size={size}
           zoom={zoom}
@@ -176,6 +203,8 @@ export function PaintWindow({ progress, reducedMotion, onReplay }: Props) {
         />
         <PaintCanvas
           ref={canvas}
+          project={currentProject}
+          onAnimationTool={setAnimationTool}
           progress={progress}
           reducedMotion={reducedMotion}
           onDimensions={setDimensions}
@@ -201,7 +230,7 @@ export function PaintWindow({ progress, reducedMotion, onReplay }: Props) {
             {dimensions.width} × {dimensions.height} px
           </span>
           <span className="status-fill" />
-          <span className="paint-scroll-hint" role="status">{progress >= 0.975 ? "A fresh canvas. Scroll up to start again ↑" : erasing ? "Erasing… scroll back to restore ↑" : "Scroll to erase ↓"}</span>
+          <span className="paint-scroll-hint" role="status">{currentProject ? "Choose Projects to open another image" : progress >= 3.5 ? "Choose Projects to explore my work" : progress >= 3.1 ? "Scroll up to revisit ↑ · projects below ↓" : progress > 1 ? "Education & experience · follow the timeline ↓" : erasing ? "Erasing… scroll back to restore ↑" : "Scroll to explore ↓"}</span>
           <span>{zoom}%</span>
           <button
             aria-label="Zoom out"
@@ -227,9 +256,12 @@ export function PaintWindow({ progress, reducedMotion, onReplay }: Props) {
           <span className="resize-grip">◢</span>
         </div>
       </div>
+      {pickerOpen && <ProjectPicker onClose={() => { setPickerOpen(false); setPickerDismissed(true); }} onOpen={selected => {
+        setProject(selected); setPickerOpen(false); setPickerDismissed(true); onProjects();
+      }} />}
       <dialog ref={helpDialog} className="paint-help-dialog" onClose={() => { setHelpOpen(false); helpButton.current?.focus({ preventScroll: true }); }}>
         <h2>A little introduction in Paint.</h2>
-        <p>Scroll down to erase the introduction. Scroll back up or choose Replay introduction to restore it.</p>
+        <p>Scroll down to erase the introduction and follow my education, internships and professional work on a timeline. Scroll back up or choose Replay introduction to start again.</p>
         <p>Draw with a mouse or pen, choose a color, and save your canvas as a PNG. On a phone, swipe to scroll.</p>
         <p>Ctrl/Cmd + Z to undo · Ctrl/Cmd + S to save.</p>
         <button autoFocus onClick={() => setHelpOpen(false)}>Back to Paint</button>

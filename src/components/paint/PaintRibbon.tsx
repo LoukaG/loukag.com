@@ -33,7 +33,7 @@ const SHAPES: PaintTool[] = [
 ];
 interface Props {
   tab: "home" | "view";
-  tool: PaintTool;
+  tool: PaintTool | "text";
   color: string;
   size: number;
   zoom: number;

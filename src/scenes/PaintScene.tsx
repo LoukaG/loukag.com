@@ -15,8 +15,8 @@ export default function PaintScene() {
       frame = 0;
       if (!root.current) return;
       const rect = root.current.getBoundingClientRect();
-      const distance = root.current.offsetHeight - window.innerHeight;
-      setProgress(Math.max(0, Math.min(1, -rect.top / Math.max(1, distance))));
+      const distance = window.innerHeight * 3.2 / 3;
+      setProgress(Math.max(0, Math.min(3.8, -rect.top / Math.max(1, distance))));
     };
     const schedule = () => {
       if (!frame) frame = requestAnimationFrame(update);
@@ -40,6 +40,8 @@ export default function PaintScene() {
         <PaintWindow
           progress={progress}
           reducedMotion={reducedMotion}
+          onProjects={() => window.scrollTo({ top: window.innerHeight * 3.2 / 3 * 3.6, behavior: "instant" })}
+          onTimeline={() => window.scrollTo({ top: window.innerHeight * 3.2 / 3 * 1.04, behavior: "instant" })}
           onReplay={() => window.scrollTo({ top: 0, behavior: "instant" })}
         />
       </div>

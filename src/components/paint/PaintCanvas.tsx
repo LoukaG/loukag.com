@@ -8,6 +8,9 @@ import {
 } from "react";
 import type { PaintTool, Point, Stroke, CanvasHandle } from "./types";
 import { drawIntroduction, eraseIntroduction, INTRO_TEXT } from "./intro-artwork";
+import { drawResume, resume } from "./resume-artwork";
+import { drawProject, projects, type Project } from "./project-artwork";
+import { ToolGlyph } from "./ToolGlyph";
 function drawStroke(ctx: CanvasRenderingContext2D, stroke: Stroke) {
   const { points, tool, size, color } = stroke;
   if (!points.length) return;
@@ -94,19 +97,23 @@ export const PaintCanvas = forwardRef<
     size: number;
     zoom: number;
     grid: boolean;
+    project: Project | null;
     progress: number;
     reducedMotion: boolean;
+    onAnimationTool: (tool: "text" | "pencil" | null) => void;
     onDimensions: (dimensions: { width: number; height: number }) => void;
     onPosition: (p: Point) => void;
     onHistory: (undo: boolean, redo: boolean) => void;
     onPick: (color: string) => void;
   }
 >(function PaintCanvas(
-  { tool, color, size, zoom, grid, progress, reducedMotion, onDimensions, onPosition, onHistory, onPick },
+  { tool, color, size, zoom, grid, project, progress, reducedMotion, onAnimationTool, onDimensions, onPosition, onHistory, onPick },
   ref,
 ) {
   const workspace = useRef<HTMLDivElement>(null),
     cursor = useRef<HTMLDivElement>(null),
+    buildCursor = useRef<HTMLDivElement>(null),
+    textBox = useRef<HTMLDivElement>(null),
     portrait = useRef<HTMLImageElement | null>(null),
     backdrop = useRef<HTMLCanvasElement | null>(null),
     canvas = useRef<HTMLCanvasElement>(null),
@@ -118,8 +125,8 @@ export const PaintCanvas = forwardRef<
   const [portraitFailed, setPortraitFailed] = useState(false);
   const [layout, setLayout] = useState({ width: 960, height: 540, scale: 1 });
   const WIDTH = layout.width, HEIGHT = layout.height;
-  const scene = useRef({ progress, reducedMotion });
-  scene.current = { progress, reducedMotion };
+  const scene = useRef({ progress, reducedMotion, project });
+  scene.current = { progress, reducedMotion, project };
   const repaint = useCallback(() => {
     const ctx = canvas.current?.getContext("2d");
     if (!ctx) return;
@@ -131,9 +138,36 @@ export const PaintCanvas = forwardRef<
       if (base) drawIntroduction(base, portrait.current, WIDTH, HEIGHT);
     }
     ctx.drawImage(backdrop.current, 0, 0);
-    const eraser = eraseIntroduction(ctx, scene.current.progress, scene.current.reducedMotion);
-    history.current.forEach((s) => drawStroke(ctx, s));
-    if (active.current) drawStroke(ctx, active.current);
+    const progress = scene.current.progress;
+    const project = scene.current.project;
+    const currentPage = project ? 2 + projects.findIndex(item => item.id === project.id) : progress > 1 ? 1 : 0;
+    if (project) drawProject(ctx, project);
+    const activity = currentPage === 1 ? drawResume(ctx, progress, scene.current.reducedMotion) : undefined;
+    const building = activity && !active.current;
+    onAnimationTool(building ? activity.tool : null);
+    if (buildCursor.current) {
+      buildCursor.current.hidden = !building;
+      if (building) {
+        buildCursor.current.dataset.tool = activity.tool;
+        buildCursor.current.style.left = `${activity.point.x / WIDTH * 100}%`;
+        buildCursor.current.style.top = `${activity.point.y / HEIGHT * 100}%`;
+      }
+    }
+    if (textBox.current) {
+      const box = building && activity.box;
+      textBox.current.hidden = !box;
+      if (box) {
+        textBox.current.dataset.text = activity.text ?? "";
+        textBox.current.style.left = `${box.x / WIDTH * 100}%`;
+        textBox.current.style.top = `${box.y / HEIGHT * 100}%`;
+        textBox.current.style.width = `${box.width * box.amount / WIDTH * 100}%`;
+        textBox.current.style.height = `${box.height * box.amount / HEIGHT * 100}%`;
+      }
+    }
+    history.current.filter(s => (s.page ?? 0) === currentPage).forEach(s => drawStroke(ctx, s));
+    if (active.current && (active.current.page ?? 0) === currentPage) drawStroke(ctx, active.current);
+    const eraseProgress = currentPage === 0 ? progress : 0;
+    const eraser = eraseIntroduction(ctx, eraseProgress, scene.current.reducedMotion);
     if (cursor.current) {
       cursor.current.hidden = !eraser;
       if (eraser) {
@@ -143,7 +177,7 @@ export const PaintCanvas = forwardRef<
         cursor.current.style.height = `${eraser.size / HEIGHT * 100}%`;
       }
     }
-  }, [WIDTH, HEIGHT]);
+  }, [WIDTH, HEIGHT, onAnimationTool]);
   useEffect(() => {
     const image = new Image();
     let disposed = false;
@@ -170,7 +204,7 @@ export const PaintCanvas = forwardRef<
     observer.observe(workspace.current);
     return () => observer.disconnect();
   }, [onDimensions]);
-  useEffect(() => { repaint(); }, [progress, reducedMotion, repaint]);
+  useEffect(() => { repaint(); }, [progress, reducedMotion, project, repaint]);
   const notify = () =>
     onHistory(history.current.length > 0, future.current.length > 0);
   useEffect(() => {
@@ -192,6 +226,7 @@ export const PaintCanvas = forwardRef<
     },
     clear: () => {
       history.current.push({
+        page: scene.current.project ? 2 + projects.findIndex(item => item.id === scene.current.project!.id) : scene.current.progress > 1 ? 1 : 0,
         tool: "fill",
         color: "#fff",
         size: 1,
@@ -207,7 +242,7 @@ export const PaintCanvas = forwardRef<
         const url = URL.createObjectURL(blob),
           a = document.createElement("a");
         a.href = url;
-        a.download = "Louka-Gauthier-Paint.png";
+        a.download = scene.current.project?.file ?? "Louka-Gauthier-Paint.png";
         a.click();
         setTimeout(() => URL.revokeObjectURL(url), 1000);
       }, "image/png");
@@ -239,6 +274,20 @@ export const PaintCanvas = forwardRef<
   };
   return (
     <div className="canvas-workspace" ref={workspace}>
+      <div className="sr-only">
+        {resume.map(section => (
+          <section key={section.title} aria-label={section.title}>
+            <h2>{section.title}</h2>
+            {section.entries.map(entry => (
+              <article key={entry.title}>
+                <p>{entry.date} · {entry.kind}</p>
+                <h3>{entry.title}</h3><p>{entry.place}</p>
+                <ul>{entry.details.map(detail => <li key={detail}>{detail}</li>)}</ul>
+              </article>
+            ))}
+          </section>
+        ))}
+      </div>
       <div
         className={`canvas-sheet ${grid ? "grid-visible" : ""}`}
         style={{ width: (WIDTH * layout.scale * zoom) / 100, height: (HEIGHT * layout.scale * zoom) / 100 }}
@@ -247,7 +296,7 @@ export const PaintCanvas = forwardRef<
           ref={canvas}
           width={WIDTH}
           height={HEIGHT}
-          aria-label={`${INTRO_TEXT}. Paint-style portrait. Scroll to erase; draw with your mouse or pen.`}
+          aria-label={project ? `${project.name}. ${project.description} ${project.details}` : `${INTRO_TEXT}. Paint-style portrait. Scroll down, or swipe up on mobile, to explore. Draw with your mouse or pen.`}
           style={{ cursor: tool === "picker" ? "copy" : "crosshair" }}
           onPointerDown={(e) => {
             if (e.pointerType === "touch" || e.button !== 0 || pointer.current !== null) return;
@@ -273,7 +322,7 @@ export const PaintCanvas = forwardRef<
             }
             e.currentTarget.setPointerCapture(e.pointerId);
             pointer.current = e.pointerId;
-            active.current = { tool, color, size, points: [p] };
+            active.current = { tool, color, size, points: [p], page: scene.current.project ? 2 + projects.findIndex(item => item.id === scene.current.project!.id) : scene.current.progress > 1 ? 1 : 0 };
             repaint();
           }}
           onPointerMove={(e) => {
@@ -289,6 +338,14 @@ export const PaintCanvas = forwardRef<
           onPointerCancel={() => finish(true)}
           onLostPointerCapture={() => finish()}
         />
+        {project && <a className="project-link" href={project.url} target="_blank" rel="noopener noreferrer">{project.linkLabel} ↗<span className="sr-only">: {project.name} (opens in a new tab)</span></a>}
+        <div ref={textBox} className="paint-text-box" aria-hidden="true" hidden>
+          <i /><i /><i /><i /><i /><i /><i /><i />
+        </div>
+        <div ref={buildCursor} className="paint-build-cursor" aria-hidden="true" hidden>
+          <span className="build-pencil"><ToolGlyph name="pencil" size={28} /></span>
+          <span className="build-text-caret" />
+        </div>
         <div ref={cursor} className="eraser-cursor" aria-hidden="true" hidden />
         <span className="canvas-handle handle-right" />
         <span className="canvas-handle handle-bottom" />

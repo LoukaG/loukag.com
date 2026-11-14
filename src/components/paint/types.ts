@@ -16,6 +16,7 @@ export interface Point {
   y: number;
 }
 export interface Stroke {
+  page?: number;
   tool: PaintTool;
   color: string;
   size: number;

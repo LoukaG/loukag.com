@@ -36,6 +36,39 @@ export function drawIntroduction(
     if (narrow) ctx.drawImage(portrait, 40, 335, width - 80, width - 80);
     else ctx.drawImage(portrait, 480, 30, 470, 470);
   }
+  ctx.save();
+  ctx.strokeStyle = "#183ed7";
+  ctx.fillStyle = "#183ed7";
+  ctx.lineWidth = 2;
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  ctx.font = `22px ${handwriting}`;
+  ctx.beginPath();
+  if (narrow) {
+    ctx.fillText("Swipe up", 215, height - 33);
+    ctx.moveTo(189, height - 22);
+    ctx.lineTo(191, height - 43);
+    ctx.lineTo(190, height - 56);
+    ctx.moveTo(181, height - 46);
+    ctx.lineTo(190, height - 56);
+    ctx.lineTo(199, height - 45);
+  } else {
+    // A quick mouse sketch and a crooked downward arrow.
+    ctx.moveTo(72, 453);
+    ctx.bezierCurveTo(57, 452, 59, 414, 73, 415);
+    ctx.bezierCurveTo(89, 413, 89, 455, 72, 453);
+    ctx.moveTo(73, 422);
+    ctx.lineTo(73, 432);
+    ctx.fillText("Scroll down", 108, 441);
+    ctx.moveTo(255, 421);
+    ctx.lineTo(257, 438);
+    ctx.lineTo(255, 452);
+    ctx.moveTo(247, 443);
+    ctx.lineTo(255, 452);
+    ctx.lineTo(265, 442);
+  }
+  ctx.stroke();
+  ctx.restore();
 }
 
 /** The cursor and the erased pixels follow the very same distance-based path. */
@@ -54,20 +87,49 @@ export function eraseIntroduction(
   }
   const amount = Math.max(0, Math.min(1, (progress - 0.025) / 0.95));
   if (amount === 0) return null;
-  const rows = height > width ? 12 : 9;
-  const band = height / rows;
-  const points: Point[] = [];
+  const size = Math.min(width, height) / 7;
+  const columns = Math.ceil(width / (size * 0.8));
+  const rows = Math.ceil(height / (size * 0.8));
+  // Fixed noise keeps the messy route identical when scrolling backwards.
+  const noise = (seed: number) => {
+    const value = Math.sin(seed * 127.1 + 311.7) * 43758.5453;
+    return value - Math.floor(value);
+  };
+  const patches: Point[] = [];
   for (let row = 0; row < rows; row++) {
-    const y = (row + 0.5) * band;
-    points.push({ x: row % 2 ? width : 0, y });
-    points.push({ x: row % 2 ? 0 : width, y });
+    for (let column = 0; column < columns; column++) {
+      const seed = row * columns + column;
+      patches.push({
+        x: (column + 0.5 + (noise(seed) - 0.5) * 0.85) * width / columns,
+        y: (row + 0.5 + (noise(seed + 1000) - 0.5) * 0.85) * height / rows,
+      });
+    }
   }
-  let remaining = amount * (rows * width + (rows - 1) * band);
+  const points: Point[] = [{ x: width / 2, y: height / 2 }];
+  let distance = 0;
+  while (patches.length) {
+    const from = points[points.length - 1];
+    let next = 0;
+    let nearest = Infinity;
+    for (let i = 0; i < patches.length; i++) {
+      const patch = patches[i];
+      const score = Math.hypot(patch.x - from.x, patch.y - from.y)
+        * (0.45 + noise(i + points.length * 13) * 1.3);
+      if (score < nearest) {
+        nearest = score;
+        next = i;
+      }
+    }
+    const [to] = patches.splice(next, 1);
+    distance += Math.hypot(to.x - from.x, to.y - from.y);
+    points.push(to);
+  }
+  let remaining = amount * distance;
   let point = points[0];
   ctx.strokeStyle = "#fff";
-  ctx.lineWidth = band + 4;
+  ctx.lineWidth = size;
   ctx.lineCap = "square";
-  ctx.lineJoin = "miter";
+  ctx.lineJoin = "round";
   ctx.beginPath();
   ctx.moveTo(point.x, point.y);
   for (let i = 1; i < points.length && remaining > 0; i++) {
@@ -80,5 +142,5 @@ export function eraseIntroduction(
     remaining -= length;
   }
   ctx.stroke();
-  return amount < 1 ? { point, size: band + 4 } : null;
+  return amount < 1 ? { point, size } : null;
 }
